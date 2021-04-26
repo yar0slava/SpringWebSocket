@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hello WebSocket</title>
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <link rel="stylesheet" href="/css/style.css">
+
+    <script src="sockjs-0.3.4.js"></script>
+    <script src="stomp.js"></script>
+    <script type="text/javascript">
+
+        var stompClient = null;
+
+        function setConnected(connected) {
+            document.getElementById('connect').disabled = connected;
+            document.getElementById('disconnect').disabled = !connected;
+            document.getElementById('conversationDiv').style.visibility = connected ? 'visible' : 'hidden';
+        }
+
+        function connect() {
+            var socket = new SockJS('http://localhost:8080/socket');
+            stompClient = Stomp.over(socket);
+            stompClient.connect({}, function (frame) {
+                setConnected(true);
+                console.log('Connected: ' + frame);
+                stompClient.subscribe('/data/students', function (greeting) {
+                    document.getElementById('allStudentsResponse').textContent = "";
+                    var arr = JSON.parse(greeting.body);
+
+                    for (var i = 0; i < arr.length; i++) {
+                        var obj = arr[i];
+
+                        var tr = document.createElement("tr");
+
+                        var idE = document.createElement("td");
+                        var id = document.createTextNode(JSON.stringify(obj.id));
+                        idE.appendChild(id);
+
+                        var nameE = document.createElement("td");
+                        var name = document.createTextNode(JSON.stringify(obj.name));
+                        nameE.appendChild(name);
+
+                        var courseE = document.createElement("td");
+                        var course = document.createTextNode(JSON.stringify(obj.course));
+                        courseE.appendChild(course);
+
+                        tr.appendChild(idE);
+                        tr.appendChild(nameE);
+                        tr.appendChild(courseE);
+                        var element = document.getElementById("allStudentsResponse");
+                        element.appendChild(tr);
+                    }
+                });
+
+                stompClient.subscribe('/data/enrollments', function (greeting) {
+                    document.getElementById('StudentDetailsResponse').textContent = "";
+                    var arr = JSON.parse(greeting.body);
+
+                    for (var i = 0; i < arr.length; i++) {
+                        var obj = arr[i];
+
+                        var tr = document.createElement("tr");
+
+                        var studIdE = document.createElement("td");
+                        var studId = document.createTextNode(JSON.stringify(obj.student_id));
+                        studIdE.appendChild(studId);
+
+                        var enrollmentIdE = document.createElement("td");
+                        var enrollmentId = document.createTextNode(JSON.stringify(obj.id));
+                        enrollmentIdE.appendChild(enrollmentId);
+
+                        var disciplineIdE = document.createElement("td");
+                        var disciplineId = document.createTextNode(JSON.stringify(obj.discipline_id));
+                        disciplineIdE.appendChild(disciplineId);
+
+                        var disciplineNameE = document.createElement("td");
+                        var disciplineName = document.createTextNode(JSON.stringify(obj.discipline_name));
+                        disciplineNameE.appendChild(disciplineName);
+
+                        var creditsE = document.createElement("td");
+                        var credits = document.createTextNode(JSON.stringify(obj.credits));
+                        creditsE.appendChild(credits);
+
+                        var gradeE = document.createElement("td");
+                        var grade = document.createTextNode(JSON.stringify(obj.grade));
+                        gradeE.appendChild(grade);
+
+                        tr.appendChild(studIdE);
+                        tr.appendChild(enrollmentIdE);
+                        tr.appendChild(disciplineIdE);
+                        tr.appendChild(disciplineNameE);
+                        tr.appendChild(creditsE);
+                        tr.appendChild(gradeE);
+                        var element = document.getElementById("StudentDetailsResponse");
+                        element.appendChild(tr);
+                    }
+                });
+            });
+        }
+
+        function disconnect() {
+            if (stompClient != null) {
+                stompClient.disconnect();
+            }
+            setConnected(false);
+            console.log("Disconnected");
+        }
+
+        function getAllStudents() {
+            stompClient.send("/app/students", {}, {});
+        }
+
+        function getStudentDetails() {
+            var id = document.getElementById('studentId').value;
+            stompClient.send("/app/enrollments", {}, id);
+        }
+
+    </script>
+</head>
+<body onload="disconnect()">
+<noscript><h2 style="color: #ff0000">Seems your browser doesn't support Javascript! Websocket relies on Javascript being
+    enabled. Please enable
+    Javascript and reload this page!</h2></noscript>
+<div class="container">
+    <div class="container">
+        <button id="connect" onclick="connect();">Connect</button>
+        <button id="disconnect" disabled="disabled" onclick="disconnect();">Disconnect</button>
+    </div>
+
+    <div class="container" id="conversationDiv">
+        <div class="container">
+            <div>
+                <button id="getAllStudents" onclick="getAllStudents();">Get all students</button>
+            </div>
+
+            <table class='table table-hover mt-5'>
+                <thead class="text-center">
+                <th class="text-center">Student ID</th>
+                <th class="text-center">Name</th>
+                <th class="text-center">Course</th>
+                </thead>
+
+                <tbody class="text-center" id="allStudentsResponse">
+                </tbody>
+            </table>
+        </div>
+
+        <div class="container">
+            <div>
+                <input type="text" id="studentId"/>
+                <button id="getStudentDetails" onclick="getStudentDetails();">Get details about students</button>
+            </div>
+
+            <table class='table table-hover mt-5'>
+                <thead class="text-center">
+                <th class="text-center">Student ID</th>
+                <th class="text-center">Enrollment ID</th>
+                <th class="text-center">Discipline ID</th>
+                <th class="text-center">Discipline name</th>
+                <th class="text-center">Credits</th>
+                <th class="text-center">Grade</th>
+                </thead>
+
+                <tbody class="text-center" id="StudentDetailsResponse">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>
